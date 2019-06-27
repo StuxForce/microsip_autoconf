@@ -1,0 +1,4 @@
+// Allow script execution only if PC name match these expression
+allowedPC = /^.*/i;
+// Set to false or true to disable or enable destop link creation
+desktopLink = true;
