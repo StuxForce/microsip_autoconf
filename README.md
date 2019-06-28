@@ -20,9 +20,9 @@ Settings in this file are override all other settings (user settings on local co
 - clone this repo in shared folder.
 - allow all users *read* permittions on all files and folders. For Users dir turn off inheritance.
 Each user must have read access only to his config file
-- change settings in "Settings below may be changed by system administrator" section. 
+- change settings in "Settings below may be changed by system administrator" section of microsip_autoconf.js file. 
 Be sure to specify a correct *scriptSrvDir* variable value. It is shared path name to microsip_autoconf.js.
-For example: *'\\\\srv.example.local\\microsip'*
+For example: *'\\\\\\\srv.example.local\\\\microsip'*
 - change Group Policy to run **microsip_autoconf.js** file at user logon
 - change settings in **MicroSIP.ini** file (if needed)
 
