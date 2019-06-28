@@ -4,6 +4,14 @@
  * ============================================================================
 */
 
+
+// Settings below may be changed by system administrator.
+var allowedPC = /^.*/i;
+var desktopLink = true;
+var scriptSrvDir = '\\\\path\\to\\microsip_autoconf.js\\shared\\folder';
+
+
+// Script internal variables. DO NOT CHANGE!
 var WSN = WScript.CreateObject('WScript.Network');
 var FSO = WScript.CreateObject('Scripting.FileSystemObject');
 var WSS = WScript.CreateObject('WScript.Shell');
@@ -15,10 +23,10 @@ var confFileName = 'MicroSIP.ini';
 var execFileName = 'microsip.exe';
 var lnkFileName = 'MicroSIP.lnk';
 
-var srvDistPath = WSS.CurrentDirectory + '\\' + distFolderName;
+var srvDistPath = scriptSrvDir + '\\' + distFolderName;
 var usrConfPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + confFolderName;
-var mainConfFileOnSrv = WSS.CurrentDirectory + '\\' + confFileName;
-var usrConfFileOnSrv = WSS.CurrentDirectory + '\\' + usersFolderName + '\\' + WSN.UserName + '.ini';
+var mainConfFileOnSrv = scriptSrvDir + '\\' + confFileName;
+var usrConfFileOnSrv = scriptSrvDir + '\\' + usersFolderName + '\\' + WSN.UserName + '.ini';
 var usrConfFileOnLoc = usrConfPath + '\\' + confFileName;
 var usrExecFilePath = usrConfPath + '\\' + execFileName;
 var mainSrvINI = {};
@@ -27,13 +35,6 @@ var usrLocINI = {};
 
 var needRestart = 0;
 var cmdLine = 'taskkill.exe /F /FI "USERNAME eq ' + WSN.UserName + '" /IM microsip.exe';
-
-// Settings below may be owerrriden by conf.js file
-var allowedPC = /^.*/i;
-var desktopLink = true;
-if (FSO.FileExists(WSS.CurrentDirectory + '\\conf.js')) {
-	eval(FSO.OpenTextFile(WSS.CurrentDirectory + '\\conf.js', 1).ReadAll());
-}
 
 
 if (!(allowedPC.test(WSN.ComputerName))
