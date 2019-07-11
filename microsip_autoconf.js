@@ -1,5 +1,5 @@
 /* ============================================================================
- * MicroSIP softphone auto configuration script for using in enterprise
+ * MicroSIP softphone auto configuration script for using in Enterprise
  * Powered by: Denis Pantsyrev <denis.pantsyrev@gmail.com>
  * ============================================================================
 */
@@ -65,7 +65,7 @@ if (FSO.FolderExists(srvDistPath)) {
 
 ReadINIFile(mainSrvINI, mainConfFileOnSrv);
 ReadINIFile(usrSrvINI, usrConfFileOnSrv);
-ReadINIFile(usrLocINI, usrConfFileOnLoc);
+ReadINIFile(usrLocINI, usrConfFileOnLoc, -1);
 
 MergeINIObj(usrLocINI, mainSrvINI);
 MergeINIObj(usrLocINI, usrSrvINI);
@@ -94,9 +94,9 @@ if (needRestart) {
 
 
 // Read .ini file to object
-function ReadINIFile(INIObj, filename) {
+function ReadINIFile(INIObj, filename, format) {
 	if ((FSO.FileExists(filename)) && (FSO.GetFile(filename).Size > 0)) {
-		var fileh = FSO.OpenTextFile(filename, 1);
+		var fileh = FSO.OpenTextFile(filename, 1, false, format);
 		while (!fileh.AtEndOfStream) {
 			var line = fileh.ReadLine();
 			if (/^\[(\w+)\]/.test(line)) {
