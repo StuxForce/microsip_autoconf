@@ -1,96 +1,122 @@
 /* ============================================================================
- * MicroSIP softphone auto configuration script for using in Enterprise
+ * MicroSIP updater script for using in Enterprise
  * Powered by: Denis Pantsyrev <denis.pantsyrev@gmail.com>
  * ============================================================================
 */
-
-
-// Settings below may be changed by system administrator.
-var allowedPC = /^.*/i;
-var desktopLink = true;
-var scriptSrvDir = '\\\\path\\to\\microsip_autoconf.js\\shared\\folder';
-
 
 // Script internal variables. DO NOT CHANGE!
 var WSN = WScript.CreateObject('WScript.Network');
 var FSO = WScript.CreateObject('Scripting.FileSystemObject');
 var WSS = WScript.CreateObject('WScript.Shell');
 
-var distFolderName = 'Dist';
-var usersFolderName = 'Users';
-var confFolderName = 'MicroSIP';
+// Get updater config
+var updaterINI = {};
+ReadINIFile(updaterINI, '.\\updater.ini');
+var allowedPC = new RegExp(updaterINI.settings.allowedpc, "i");
+var desktopLink = updaterINI.settings.desktoplink;
+var srvScriptDir = updaterINI.settings.srvscriptdir;
+
+// Prepare names
+var srvDistFolderName = 'Dist';
+var srvUsersFolderName = 'Users';
+var distFolderName = 'MicroSIP';
 var confFileName = 'MicroSIP.ini';
+var contactsFileName = 'Contacts.xml';
 var execFileName = 'microsip.exe';
 var lnkFileName = 'MicroSIP.lnk';
+var tmpDistFolderName = 'tmp_MicroSIP';
 
-var srvDistPath = scriptSrvDir + '\\' + distFolderName;
-var usrConfPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + confFolderName;
-var mainConfFileOnSrv = scriptSrvDir + '\\' + confFileName;
-var usrConfFileOnSrv = scriptSrvDir + '\\' + usersFolderName + '\\' + WSN.UserName + '.ini';
-var usrConfFileOnLoc = usrConfPath + '\\' + confFileName;
-var usrExecFilePath = usrConfPath + '\\' + execFileName;
+var srvDistPath = srvScriptDir + '\\' + srvDistFolderName;
+var usrDistPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + distFolderName;
+var tmpDistPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + tmpDistFolderName;
+
+var tmpConfFile = tmpDistPath + '\\' + confFileName
+var tmpContactsFile = tmpDistPath + '\\' + contactsFileName;
+var srvMainConfFile = srvScriptDir + '\\' + confFileName;
+var srvUserConfFile = srvScriptDir + '\\' + srvUsersFolderName + '\\' + WSN.UserName + '.ini';
+var usrConfFile = usrDistPath + '\\' + confFileName;
+var usrContactsFile = usrDistPath + '\\' + contactsFileName;
+var usrExecFile = usrDistPath + '\\' + execFileName;
+
 var mainSrvINI = {};
 var usrSrvINI = {};
 var usrLocINI = {};
 
 var needRestart = 0;
-var cmdLine = 'taskkill.exe /F /FI "USERNAME eq ' + WSN.UserName + '" /IM microsip.exe';
-
+var cmdLine = 'taskkill.exe /FI "USERNAME eq ' + WSN.UserName + '" /IM ' + execFileName;
 
 if (!(allowedPC.test(WSN.ComputerName))
-	|| !(FSO.FileExists(usrConfFileOnSrv) && FSO.GetFile(usrConfFileOnSrv).Size > 0)
+	|| !(FSO.FileExists(srvUserConfFile) && FSO.GetFile(srvUserConfFile).Size > 0)
 ) {
 	WScript.Quit();
 }
 
-// Close microsip.exe for update if it running
-if (/ [0-9]+/.test(WSS.Exec(cmdLine).StdOut.ReadAll())) {
-	needRestart = 1;
-	WScript.Sleep(1000);
-}
-
 // Update MicroSIP files
-if (FSO.FolderExists(srvDistPath)) {
-	FSO.CopyFolder(srvDistPath, usrConfPath);
-	if (desktopLink) {
-		strDesktop = WSS.SpecialFolders('Desktop');
-		oMyShortcut = WSS.CreateShortcut(strDesktop + '\\' + lnkFileName);
-		oMyShortcut.WindowStyle = 4;
-		oMyShortcut.IconLocation = usrExecFilePath + ', 0';
-		oMyShortcut.TargetPath = usrExecFilePath;
-		oMyShortcut.WorkingDirectory = usrConfPath;
-		oMyShortcut.Save();
+try {
+	if (FSO.FolderExists(srvDistPath)) {
+		FSO.CopyFolder(srvDistPath, tmpDistPath);
+		if (FSO.FileExists(usrConfFile)) {
+			FSO.CopyFile(usrConfFile, tmpConfFile);
+		}
+		if (FSO.FileExists(usrContactsFile)) {
+			FSO.CopyFile(usrContactsFile, tmpContactsFile);
+		}
+		if (desktopLink == "true") {
+			strDesktop = WSS.SpecialFolders('Desktop');
+			oMyShortcut = WSS.CreateShortcut(strDesktop + '\\' + lnkFileName);
+			oMyShortcut.WindowStyle = 4;
+			oMyShortcut.IconLocation = usrExecFile + ', 0';
+			oMyShortcut.TargetPath = usrExecFile;
+			oMyShortcut.WorkingDirectory = usrDistPath;
+			oMyShortcut.Save();
+		}
 	}
+
+	ReadINIFile(mainSrvINI, srvMainConfFile);
+	ReadINIFile(usrSrvINI, srvUserConfFile);
+	ReadINIFile(usrLocINI, tmpConfFile, -1);
+
+	MergeINIObj(usrLocINI, mainSrvINI);
+	MergeINIObj(usrLocINI, usrSrvINI);
+
+	SaveINIFile(usrLocINI, tmpDistPath, tmpConfFile);
+
+	// Update Registry to associate MicroSIP application with sip:// uri
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\', 'Internet Call Protocol', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\URL Protocol', '', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\Owner Name', 'MicroSIP', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\DefaultIcon', usrExecFile + ',0', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\shell\\open\\command\\', '\"' + usrExecFile + '\" %1', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\RegisteredApplications\\MicroSIP', 'SOFTWARE\\MicroSIP\\Capabilities', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\', usrDistPath, 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Start Menu Folder', 'MicroSIP', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Capabilities\\ApplicationDescription', 'MicroSIP Softphone', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Capabilities\\ApplicationName', 'MicroSIP', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Capabilities\\UrlAssociations\\sip', 'MicroSIP', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\MicroSIP\\', 'Internet Call Protocol', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\MicroSIP\\DefaultIcon\\', usrExecFile + ',0', 'REG_SZ');
+	WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\MicroSIP\\shell\\open\\command\\', '\"' + usrExecFile + '\" %1', 'REG_SZ');
+
+	// Close microsip.exe for update if it running
+	if (/ [0-9]+/.test(WSS.Exec(cmdLine).StdOut.ReadAll())) {
+		needRestart = 1;
+		WScript.Sleep(3000);
+	}
+
+	if (FSO.FolderExists(usrDistPath)) {
+		FSO.DeleteFolder(usrDistPath, 1);
+	}
+
+	FSO.MoveFolder(tmpDistPath, usrDistPath);
+
+	if (needRestart) {
+		WSS.run(usrDistPath + '\\' + execFileName, 1, false);
+	}
+
+} catch (e) {
+	WSS.LogEvent(1, WScript.ScriptName + ' ' + e.name + ': ' + e.message)
 }
 
-ReadINIFile(mainSrvINI, mainConfFileOnSrv);
-ReadINIFile(usrSrvINI, usrConfFileOnSrv);
-ReadINIFile(usrLocINI, usrConfFileOnLoc, -1);
-
-MergeINIObj(usrLocINI, mainSrvINI);
-MergeINIObj(usrLocINI, usrSrvINI);
-
-SaveINIFile(usrLocINI, usrConfPath, usrConfFileOnLoc);
-
-// Update Registry to associate MicroSIP application with sip:// uri
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\', 'Internet Call Protocol', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\URL Protocol', '', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\Owner Name', 'MicroSIP', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\DefaultIcon', usrExecFilePath + ',0', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\sip\\shell\\open\\command\\', '\"' + usrExecFilePath + '\" %1', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\RegisteredApplications\\MicroSIP', 'SOFTWARE\\MicroSIP\\Capabilities', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\', usrConfPath, 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Start Menu Folder', 'MicroSIP', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Capabilities\\ApplicationDescription', 'MicroSIP Softphone', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Capabilities\\ApplicationName', 'MicroSIP', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\MicroSIP\\Capabilities\\UrlAssociations\\sip', 'MicroSIP', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\MicroSIP\\', 'Internet Call Protocol', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\MicroSIP\\DefaultIcon\\', usrExecFilePath + ',0', 'REG_SZ');
-WSS.RegWrite('HKEY_CURRENT_USER\\SOFTWARE\\Classes\\MicroSIP\\shell\\open\\command\\', '\"' + usrExecFilePath + '\" %1', 'REG_SZ');
-
-if (needRestart) {
-	WSS.run(usrConfPath + '\\' + execFileName, 1, false);
-}
 
 
 // Read .ini file to object
