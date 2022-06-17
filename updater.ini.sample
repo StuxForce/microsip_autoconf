@@ -1,4 +1,3 @@
 [Settings]
 allowedPC = .*
 desktopLink = true
-srvScriptDir = \\storage.domain.com\MicroSIP$
