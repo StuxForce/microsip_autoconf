@@ -1,4 +1,4 @@
-Download latest distributive from MicroSIP official site and unpack files to these folder.
+Download latest portable distributive from MicroSIP official site (https://www.microsip.org/downloads) and unpack files to these folder.
 
 For example, files like below:
 - avcodec-57.dll
