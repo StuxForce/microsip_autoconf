@@ -8,51 +8,51 @@
 var WSN = WScript.CreateObject('WScript.Network');
 var FSO = WScript.CreateObject('Scripting.FileSystemObject');
 var WSS = WScript.CreateObject('WScript.Shell');
+var srvScriptDir = WScript.ScriptFullName.substring(0, WScript.ScriptFullName.lastIndexOf(WScript.ScriptName) - 1)
 
-// Get updater config
-var updaterINI = {};
-ReadINIFile(updaterINI, '.\\updater.ini');
-var allowedPC = new RegExp(updaterINI.settings.allowedpc, "i");
-var desktopLink = updaterINI.settings.desktoplink;
-var srvScriptDir = updaterINI.settings.srvscriptdir;
-
-// Prepare names
-var srvDistFolderName = 'Dist';
-var srvUsersFolderName = 'Users';
-var distFolderName = 'MicroSIP';
-var confFileName = 'MicroSIP.ini';
-var contactsFileName = 'Contacts.xml';
-var execFileName = 'microsip.exe';
-var lnkFileName = 'MicroSIP.lnk';
-var tmpDistFolderName = 'tmp_MicroSIP';
-
-var srvDistPath = srvScriptDir + '\\' + srvDistFolderName;
-var usrDistPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + distFolderName;
-var tmpDistPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + tmpDistFolderName;
-
-var tmpConfFile = tmpDistPath + '\\' + confFileName
-var tmpContactsFile = tmpDistPath + '\\' + contactsFileName;
-var srvMainConfFile = srvScriptDir + '\\' + confFileName;
-var srvUserConfFile = srvScriptDir + '\\' + srvUsersFolderName + '\\' + WSN.UserName + '.ini';
-var usrConfFile = usrDistPath + '\\' + confFileName;
-var usrContactsFile = usrDistPath + '\\' + contactsFileName;
-var usrExecFile = usrDistPath + '\\' + execFileName;
-
-var mainSrvINI = {};
-var usrSrvINI = {};
-var usrLocINI = {};
-
-var needRestart = 0;
-var cmdLine = 'taskkill.exe /FI "USERNAME eq ' + WSN.UserName + '" /IM ' + execFileName;
-
-if (!(allowedPC.test(WSN.ComputerName))
-	|| !(FSO.FileExists(srvUserConfFile) && FSO.GetFile(srvUserConfFile).Size > 0)
-) {
-	WScript.Quit();
-}
-
-// Update MicroSIP files
 try {
+	// Get updater config
+	var updaterINI = {};
+	ReadINIFile(updaterINI, srvScriptDir + '\\updater.ini');
+	var allowedPC = new RegExp(updaterINI.settings.allowedpc, "i");
+	var desktopLink = updaterINI.settings.desktoplink;
+
+	// Prepare names
+	var srvDistFolderName = 'Dist';
+	var srvUsersFolderName = 'Users';
+	var distFolderName = 'MicroSIP';
+	var confFileName = 'MicroSIP.ini';
+	var contactsFileName = 'Contacts.xml';
+	var execFileName = 'microsip.exe';
+	var lnkFileName = 'MicroSIP.lnk';
+	var tmpDistFolderName = 'tmp_MicroSIP';
+
+	var srvDistPath = srvScriptDir + '\\' + srvDistFolderName;
+	var usrDistPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + distFolderName;
+	var tmpDistPath = WSS.ExpandEnvironmentStrings('%APPDATA%') + '\\' + tmpDistFolderName;
+
+	var tmpConfFile = tmpDistPath + '\\' + confFileName
+	var tmpContactsFile = tmpDistPath + '\\' + contactsFileName;
+	var srvMainConfFile = srvScriptDir + '\\' + confFileName;
+	var srvUserConfFile = srvScriptDir + '\\' + srvUsersFolderName + '\\' + WSN.UserName + '.ini';
+	var usrConfFile = usrDistPath + '\\' + confFileName;
+	var usrContactsFile = usrDistPath + '\\' + contactsFileName;
+	var usrExecFile = usrDistPath + '\\' + execFileName;
+
+	var mainSrvINI = {};
+	var usrSrvINI = {};
+	var usrLocINI = {};
+
+	var needRestart = 0;
+	var cmdLine = 'taskkill.exe /FI "USERNAME eq ' + WSN.UserName + '" /IM ' + execFileName;
+
+	if (!(allowedPC.test(WSN.ComputerName))
+		|| !(FSO.FileExists(srvUserConfFile) && FSO.GetFile(srvUserConfFile).Size > 0)
+	) {
+		WScript.Quit();
+	}
+
+	// Update MicroSIP files
 	if (FSO.FolderExists(srvDistPath)) {
 		FSO.CopyFolder(srvDistPath, tmpDistPath);
 		if (FSO.FileExists(usrConfFile)) {
@@ -116,7 +116,6 @@ try {
 } catch (e) {
 	WSS.LogEvent(1, WScript.ScriptName + ' ' + e.name + ': ' + e.message)
 }
-
 
 
 // Read .ini file to object
