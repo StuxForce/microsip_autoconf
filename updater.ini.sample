@@ -1,3 +1,4 @@
 [Settings]
 allowedPC = .*
 desktopLink = true
+saveUserContacts = false
