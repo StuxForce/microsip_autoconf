@@ -17,14 +17,19 @@ Settings in this file are override all other settings (user settings on local co
 
 **updater.ini** - Some autoconf settings
 
+**updater.log** - Some log data of script execution (errors, etc)
+
 ## How it work
 
 - clone this repo in shared folder.
-- allow all users *read* permittions on all files and folders. For Users dir turn off inheritance.
-Each user must have read access only to his config file
+- allow all domain users *read* permittions on all files and folders. For Users dir turn off inheritance (each user must have read access only to his config file)
+- allow all domain users *write* permittions on **updater.log**
 - rename **updater.ini.sample** to **updater.ini** and change settings (if needed) 
 - change Group Policy to run **microsip_autoconf.js** file at user logon
 - change settings in **MicroSIP.ini** file (if needed)
+	- allowedPC: Reulal expression of allowed computers. If set updater will work only on this computers (Default: .*)
+	- desktopLink: if set true, it create link to MicroSIP.exe on desktop (Default: true)
+	- saveUserContacts: if set false, it replaces user's **Contacts.xml** file by file **Contacts.xml** from Dist folder (Default: false)
 
 To add new user's config do these:
 - make a copy of **__tpl.ini** file in Users dir
