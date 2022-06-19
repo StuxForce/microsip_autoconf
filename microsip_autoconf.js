@@ -16,6 +16,7 @@ try {
 	ReadINIFile(updaterINI, srvScriptDir + '\\updater.ini');
 	var allowedPC = new RegExp(updaterINI.settings.allowedpc, "i");
 	var desktopLink = updaterINI.settings.desktoplink;
+	var saveUserContacts = updaterINI.settings.saveusercontacts;
 
 	// Prepare names
 	var srvDistFolderName = 'Dist';
@@ -53,12 +54,13 @@ try {
 	}
 
 	// Update MicroSIP files
+
 	if (FSO.FolderExists(srvDistPath)) {
 		FSO.CopyFolder(srvDistPath, tmpDistPath);
 		if (FSO.FileExists(usrConfFile)) {
 			FSO.CopyFile(usrConfFile, tmpConfFile);
 		}
-		if (FSO.FileExists(usrContactsFile)) {
+		if ((FSO.FileExists(usrContactsFile)) && (saveUserContacts == "true")) {
 			FSO.CopyFile(usrContactsFile, tmpContactsFile);
 		}
 		if (desktopLink == "true") {
@@ -71,6 +73,7 @@ try {
 			oMyShortcut.Save();
 		}
 	}
+
 
 	ReadINIFile(mainSrvINI, srvMainConfFile);
 	ReadINIFile(usrSrvINI, srvUserConfFile);
@@ -114,8 +117,12 @@ try {
 	}
 
 } catch (e) {
-	WSS.LogEvent(1, WScript.ScriptName + ' ' + e.name + ': ' + e.message)
+	var curDate = new Date();
+	var logFile = FSO.OpenTextFile(srvScriptDir + '\\updater.log', 8, true);
+	logFile.WriteLine('[' + curDate + '] ' + WSN.ComputerName + ' :: ' + e.name + ': ' + e.message);
+	logFile.Close();
 }
+
 
 
 // Read .ini file to object
